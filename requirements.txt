@@ -1,0 +1,10 @@
+openai-whisper
+pyannote.audio
+pydub
+groq
+python-dotenv
+fastapi
+uvicorn
+streamlit
+requests
+torch

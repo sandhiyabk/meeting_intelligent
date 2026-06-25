@@ -77,8 +77,9 @@ def send_meeting_summary(
     """
     Send formatted meeting summary via Gmail SMTP.
     """
-    sender = os.getenv("EMAIL_ADDRESS")
-    password = os.getenv("EMAIL_APP_PASSWORD")
+    from core.config import EMAIL_ADDRESS, EMAIL_APP_PASSWORD
+    sender = EMAIL_ADDRESS
+    password = EMAIL_APP_PASSWORD
     print("EMAIL =", repr(sender))
     print("PASSWORD =", repr(password))
 

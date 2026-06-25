@@ -8,3 +8,6 @@ uvicorn
 streamlit
 requests
 torch
+soundfile
+scipy
+numpy

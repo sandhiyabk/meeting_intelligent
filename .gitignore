@@ -8,3 +8,4 @@ temp/
 *.wav
 *.m4a
 .chroma/
+.streamlit/secrets.toml

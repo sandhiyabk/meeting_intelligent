@@ -2,7 +2,9 @@
 
 import os
 from pathlib import Path
-from pydub import AudioSegment
+import soundfile as sf
+import scipy.signal as signal
+import numpy as np
 
 ALLOWED_FORMATS = ['.mp3', '.mp4', '.wav', '.m4a', '.flac', '.ogg']
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
@@ -40,36 +42,22 @@ def validate_audio_file(file_path: str) -> dict:
 
 def process_audio(file_path: str) -> str:
     """
-    Convert any audio format to 16kHz mono WAV
-    which is what Whisper expects.
-    Returns path to processed WAV file.
+    Convert any audio to 16kHz mono WAV.
+    Uses soundfile instead of pydub.
     """
+    import subprocess
     os.makedirs(TEMP_DIR, exist_ok=True)
-
-    print(f"Loading audio from: {file_path}")
-    audio = AudioSegment.from_file(file_path)
-
-    print(f"Original: {audio.channels} channels, {audio.frame_rate}Hz, "
-          f"{len(audio)/1000:.1f}s duration")
-
-    # Convert stereo to mono
-    if audio.channels > 1:
-        audio = audio.set_channels(1)
-        print("Converted to mono")
-
-    # Resample to 16kHz for Whisper
-    if audio.frame_rate != 16000:
-        audio = audio.set_frame_rate(16000)
-        print("Resampled to 16kHz")
-
-    # Export as WAV
     output_path = os.path.join(TEMP_DIR, "processed.wav")
-    audio.export(output_path, format="wav")
-    print(f"Processed audio saved: {output_path}")
+
+    # Use ffmpeg directly
+    subprocess.run([
+        "ffmpeg", "-i", file_path,
+        "-ar", "16000",
+        "-ac", "1",
+        "-y", output_path
+    ], capture_output=True)
 
     return output_path
-
-
 def get_audio_duration(file_path: str) -> float:
     """Returns duration in seconds."""
     audio = AudioSegment.from_file(file_path)

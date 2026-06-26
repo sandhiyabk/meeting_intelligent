@@ -80,8 +80,6 @@ def send_meeting_summary(
     from core.config import EMAIL_ADDRESS, EMAIL_APP_PASSWORD
     sender = EMAIL_ADDRESS
     password = EMAIL_APP_PASSWORD
-    print("EMAIL =", repr(sender))
-    print("PASSWORD =", repr(password))
 
     if not sender or not password:
         return {

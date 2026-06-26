@@ -84,8 +84,8 @@ def get_speaker_timeline(
 
     timeline = []
 
-    # DiarizeOutput object — access .speaker_diarization
-    annotation = diarization.speaker_diarization
+    # pyannote.audio pipeline returns a pyannote.core.Annotation object directly
+    annotation = diarization
 
     print(f"Annotation type: {type(annotation)}")
 

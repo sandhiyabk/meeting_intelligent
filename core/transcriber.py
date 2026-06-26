@@ -106,7 +106,13 @@ def transcribe_long_audio(audio_path: str,
         chunk_duration = get_audio_duration(chunk_path)
         time_offset += chunk_duration
 
-    cleanup_temp_files()
+    # Clean up only the chunk files created, leaving the main processed.wav intact for diarization
+    for chunk_path in chunks:
+        try:
+            if os.path.exists(chunk_path):
+                os.remove(chunk_path)
+        except Exception as e:
+            print(f"Could not delete chunk {chunk_path}: {e}")
 
     return {
         "text": " ".join(full_text_parts),

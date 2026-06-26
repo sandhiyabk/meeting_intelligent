@@ -15,6 +15,7 @@ from core.transcript_builder import (
 )
 from core.extractor import extract_meeting_insights
 import json
+import os
 
 
 def process_meeting(
@@ -53,21 +54,47 @@ def process_meeting(
 
     # Step 2: Process audio
     print("\nStep 2: Processing audio...")
-    processed_path = process_audio(audio_file_path)
+    try:
+        processed_path = process_audio(audio_file_path)
+    except Exception as e:
+        cleanup_temp_files()
+        err = str(e)
+        if "ffmpeg" in err.lower():
+            err = (
+                f"'{os.path.basename(audio_file_path)}' could not be processed. "
+                "This file may not contain valid audio. "
+                "Please upload a meeting recording (MP3, WAV, M4A, FLAC, MP4)."
+            )
+        return {"success": False, "error": err}
 
     # Step 3: Transcribe
     print("\nStep 3: Transcribing with Whisper...")
-    transcription = transcribe_long_audio(processed_path, whisper_model)
-    whisper_segments = get_segments_with_timestamps(transcription)
+    try:
+        transcription = transcribe_long_audio(processed_path, whisper_model)
+        whisper_segments = get_segments_with_timestamps(transcription)
+    except Exception as e:
+        cleanup_temp_files()
+        err = str(e)
+        if "cannot read" in err.lower() or "image" in err.lower():
+            err = (
+                f"'{os.path.basename(audio_file_path)}' does not contain audio. "
+                "This system processes meeting recordings only. "
+                "Please upload an audio/video file, not an image."
+            )
+        return {"success": False, "error": err}
     print(f"Transcription: {len(whisper_segments)} segments")
 
     # Step 4: Diarize
     print("\nStep 4: Identifying speakers with Pyannote...")
-    speaker_timeline = get_speaker_timeline(
-        processed_path,
-        min_speakers=min_speakers,
-        max_speakers=max_speakers
-    )
+    try:
+        speaker_timeline = get_speaker_timeline(
+            processed_path,
+            min_speakers=min_speakers,
+            max_speakers=max_speakers
+        )
+    except Exception as e:
+        cleanup_temp_files()
+        return {"success": False, "error": f"Speaker diarization failed: {e}"}
 
     # Step 5: Build transcript
     print("\nStep 5: Building speaker-labeled transcript...")
@@ -78,7 +105,11 @@ def process_meeting(
 
     # Step 6: Extract insights
     print("\nStep 6: Extracting insights with LLM...")
-    insights = extract_meeting_insights(transcript_text, meeting_title)
+    try:
+        insights = extract_meeting_insights(transcript_text, meeting_title)
+    except Exception as e:
+        cleanup_temp_files()
+        return {"success": False, "error": f"LLM insight extraction failed: {e}"}
 
     # Step 7: Cleanup
     print("\nStep 7: Cleaning up temp files...")

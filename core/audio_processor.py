@@ -9,10 +9,33 @@ ALLOWED_FORMATS = ['.mp3', '.mp4', '.wav', '.m4a', '.flac', '.ogg']
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
 TEMP_DIR = "temp"
 
+# Common image magic bytes (hex signatures)
+_IMAGE_SIGNATURES = [
+    b'\x89PNG\r\n\x1a\n',       # PNG
+    b'\xff\xd8\xff',             # JPEG
+    b'GIF87a',                   # GIF
+    b'GIF89a',                   # GIF
+    b'BM',                       # BMP
+    b'RIFF',                     # WEBP
+]
+
+def _is_image_content(file_path: str) -> bool:
+    """Check file header bytes to detect image files."""
+    try:
+        with open(file_path, 'rb') as f:
+            header = f.read(16)
+        for sig in _IMAGE_SIGNATURES:
+            if header.startswith(sig):
+                return True
+        return False
+    except Exception:
+        return False
+
 
 def validate_audio_file(file_path: str) -> dict:
     """
     Validate uploaded audio file format and size.
+    Checks extension, content signature, and file size.
     """
     path = Path(file_path)
 
@@ -23,6 +46,17 @@ def validate_audio_file(file_path: str) -> dict:
         return {
             "valid": False,
             "error": f"Format {path.suffix} not supported. Use: {ALLOWED_FORMATS}"
+        }
+
+    if _is_image_content(file_path):
+        return {
+            "valid": False,
+            "error": (
+                f"'{path.name}' appears to be an image, not audio. "
+                "This system only processes audio/video meeting recordings. "
+                "Please upload an audio file (MP3, WAV, M4A, FLAC, OGG) or "
+                "video file (MP4)."
+            )
         }
 
     size = os.path.getsize(file_path)

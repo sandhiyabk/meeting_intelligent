@@ -1,6 +1,5 @@
 faster-whisper
 pyannote.audio
-pyaudioop
 groq
 python-dotenv
 fastapi

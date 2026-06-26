@@ -2,22 +2,38 @@
 
 import os
 
+
 def get_secret(key: str) -> str:
     """
-    Get secret from Streamlit secrets (cloud)
-    or .env file (local development).
-    Works in both environments automatically.
+    Get secret from environment variables, Streamlit secrets,
+    or .env file. Works in Streamlit, FastAPI, and local contexts.
     """
+    value = os.getenv(key, "")
+    if value:
+        return value
+
     try:
         import streamlit as st
-        return st.secrets[key]
+        value = st.secrets.get(key, "")
+        if value:
+            os.environ[key] = value
+            return value
     except Exception:
+        pass
+
+    try:
         from dotenv import load_dotenv
         load_dotenv()
-        return os.getenv(key, "")
+        value = os.getenv(key, "")
+        if value:
+            os.environ[key] = value
+            return value
+    except Exception:
+        pass
+
+    return ""
 
 
-# Ready-to-use variables
 GROQ_API_KEY = get_secret("GROQ_API_KEY")
 HF_TOKEN = get_secret("HF_TOKEN")
 EMAIL_ADDRESS = get_secret("EMAIL_ADDRESS")

@@ -1,6 +1,6 @@
-openai-whisper
+faster-whisper
 pyannote.audio
-pydub
+pyaudioop
 groq
 python-dotenv
 fastapi

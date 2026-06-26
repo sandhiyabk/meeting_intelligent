@@ -1,12 +1,8 @@
 # core/transcriber.py
 
-import whisper
-import os
+from faster_whisper import WhisperModel
 
 # Load model once globally
-# Options: tiny, base, small, medium, large, large-v3
-# Use "base" for development (fast)
-# Use "large-v3" for final deployment (accurate)
 _model = None
 
 
@@ -15,7 +11,7 @@ def get_model(model_size: str = "base"):
     global _model
     if _model is None:
         print(f"Loading Whisper {model_size} model...")
-        _model = whisper.load_model(model_size)
+        _model = WhisperModel(model_size, device="cpu", compute_type="int8")
         print("Whisper model loaded")
     return _model
 
@@ -24,43 +20,40 @@ def transcribe_audio(audio_path: str,
                      model_size: str = "base") -> dict:
     """
     Transcribe audio file to text with timestamps.
-    Returns full result object with segments.
+    Returns dict with segments and text.
     """
     model = get_model(model_size)
-
     print(f"Transcribing: {audio_path}")
 
-    result = model.transcribe(
+    segments, info = model.transcribe(
         audio_path,
         language="en",
-        task="transcribe",
-        verbose=False,
-        word_timestamps=True,
-        fp16=False
+        beam_size=5,
+        word_timestamps=True
     )
 
-    print(f"Transcription complete: {len(result['segments'])} segments")
-    print(f"Detected language: {result['language']}")
+    segments_list = list(segments)
 
-    return result
+    print(f"Transcription complete: {len(segments_list)} segments")
+    print(f"Detected language: {info.language}")
+
+    return {
+        "segments": [
+            {
+                "start": round(seg.start, 2),
+                "end": round(seg.end, 2),
+                "text": seg.text.strip()
+            }
+            for seg in segments_list if seg.text.strip()
+        ],
+        "text": " ".join(seg.text.strip() for seg in segments_list if seg.text.strip()),
+        "language": info.language
+    }
 
 
 def get_segments_with_timestamps(transcription_result: dict) -> list:
-    """
-    Extract clean segments with start/end times and text.
-    """
-    segments = []
-
-    for seg in transcription_result["segments"]:
-        text = seg["text"].strip()
-        if text:
-            segments.append({
-                "start": round(seg["start"], 2),
-                "end": round(seg["end"], 2),
-                "text": text
-            })
-
-    return segments
+    """Extract clean segments with start/end times and text."""
+    return transcription_result["segments"]
 
 
 def get_full_text(transcription_result: dict) -> str:
@@ -84,11 +77,9 @@ def transcribe_long_audio(audio_path: str,
     duration = get_audio_duration(audio_path)
     print(f"Audio duration: {duration:.1f} seconds")
 
-    # Under 10 minutes — transcribe directly
     if duration < 600:
         return transcribe_audio(audio_path, model_size)
 
-    # Over 10 minutes — chunk approach
     print("Long audio detected — splitting into chunks")
     chunks = split_audio_chunks(audio_path, chunk_minutes=5)
 
@@ -100,28 +91,20 @@ def transcribe_long_audio(audio_path: str,
 
     for i, chunk_path in enumerate(chunks):
         print(f"Transcribing chunk {i+1}/{len(chunks)}...")
-        result = model.transcribe(
-            chunk_path,
-            language="en",
-            fp16=False
-        )
+        segments, _ = model.transcribe(chunk_path, language="en", beam_size=5)
 
-        # Adjust timestamps
-        for seg in result["segments"]:
-            text = seg["text"].strip()
+        for seg in segments:
+            text = seg.text.strip()
             if text:
                 all_segments.append({
-                    "start": round(seg["start"] + time_offset, 2),
-                    "end": round(seg["end"] + time_offset, 2),
+                    "start": round(seg.start + time_offset, 2),
+                    "end": round(seg.end + time_offset, 2),
                     "text": text
                 })
+                full_text_parts.append(text)
 
-        full_text_parts.append(result["text"])
-
-        # Calculate offset for next chunk
-        from pydub import AudioSegment
-        chunk_audio = AudioSegment.from_file(chunk_path)
-        time_offset += len(chunk_audio) / 1000
+        chunk_duration = get_audio_duration(chunk_path)
+        time_offset += chunk_duration
 
     cleanup_temp_files()
 

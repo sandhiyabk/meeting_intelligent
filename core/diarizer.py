@@ -1,11 +1,7 @@
 # core/diarizer.py
 
-import os
 import torch
 import numpy as np
-from dotenv import load_dotenv
-
-load_dotenv()
 
 from core.config import HF_TOKEN
 _pipeline = None

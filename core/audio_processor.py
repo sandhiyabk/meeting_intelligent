@@ -46,12 +46,14 @@ def process_audio(file_path: str) -> str:
     os.makedirs(TEMP_DIR, exist_ok=True)
     output_path = os.path.join(TEMP_DIR, "processed.wav")
 
-    subprocess.run([
+    result = subprocess.run([
         "ffmpeg", "-i", file_path,
         "-ar", "16000",
         "-ac", "1",
         "-y", output_path
     ], capture_output=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"FFmpeg failed: {result.stderr.decode()}")
 
     return output_path
 
@@ -64,6 +66,8 @@ def get_audio_duration(file_path: str) -> float:
         "-show_format",
         file_path
     ], capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"FFprobe failed: {result.stderr.strip()}")
     info = json.loads(result.stdout)
     return float(info["format"]["duration"])
 
@@ -83,13 +87,15 @@ def split_audio_chunks(file_path: str,
     for i in range(total_chunks):
         start = i * chunk_seconds
         chunk_path = os.path.join(TEMP_DIR, f"chunk_{i:03d}.wav")
-        subprocess.run([
+        result = subprocess.run([
             "ffmpeg", "-i", file_path,
             "-ss", str(start),
             "-t", str(chunk_seconds),
             "-ar", "16000", "-ac", "1",
             "-y", chunk_path
         ], capture_output=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"FFmpeg chunking failed: {result.stderr.decode()}")
         chunks.append(chunk_path)
         print(f"Created chunk {i+1}: starting at {start}s")
 

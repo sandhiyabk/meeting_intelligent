@@ -1,0 +1,6 @@
+[app]
+entryPoint = "ui/app.py"
+
+[server]
+maxUploadSize = 200
+maxMessageSize = 200

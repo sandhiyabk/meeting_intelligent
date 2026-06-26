@@ -1,19 +1,16 @@
 # core/config.py
 
 import os
+import streamlit as st
 
 
 def get_secret(key: str) -> str:
-    """
-    Get secret from environment variables, Streamlit secrets,
-    or .env file. Works in Streamlit, FastAPI, and local contexts.
-    """
     value = os.getenv(key, "")
     if value:
+        os.environ[key] = value
         return value
 
     try:
-        import streamlit as st
         value = st.secrets.get(key, "")
         if value:
             os.environ[key] = value

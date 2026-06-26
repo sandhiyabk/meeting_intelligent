@@ -1,13 +1,10 @@
 # core/extractor.py
 
-import os
 import json
 import re
 from groq import Groq
-from dotenv import load_dotenv
 
 from core.config import GROQ_API_KEY
-client = Groq(api_key=GROQ_API_KEY)
 
 
 def extract_meeting_insights(transcript: str,
@@ -57,6 +54,7 @@ Return ONLY valid JSON with no text before or after:
 }}"""
 
     try:
+        client = Groq(api_key=GROQ_API_KEY)
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[

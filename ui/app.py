@@ -70,6 +70,7 @@ with col2:
     st.subheader("📊 Meeting Insights")
 
     if process_btn and uploaded_file:
+        tmp_path = None
         with st.spinner("Processing — this takes 2-5 minutes..."):
             try:
                 # Save uploaded file to temp location
@@ -89,9 +90,6 @@ with col2:
                     whisper_model="base"
                 )
 
-                # Cleanup temp file
-                os.unlink(tmp_path)
-
                 if result["success"]:
                     st.session_state.result = result
                     st.success("✅ Processing complete!")
@@ -100,6 +98,9 @@ with col2:
 
             except Exception as e:
                 st.error(f"Error: {str(e)}")
+            finally:
+                if tmp_path and os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
 
     if "result" in st.session_state:
         result = st.session_state.result

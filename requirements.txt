@@ -1,14 +1,14 @@
-streamlit>=1.45.1
+streamlit
 
-faster-whisper==1.2.1
-pyannote.audio==3.1.1
+faster-whisper
+pyannote.audio
 
-groq==0.31.0
-python-dotenv==1.1.1
-requests==2.32.4
+groq
+python-dotenv
+requests
 
-torch>=2.12.1
-torchaudio>=2.12.1
+torch
+torchaudio
 
 numpy
 scipy

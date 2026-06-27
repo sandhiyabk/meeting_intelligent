@@ -3,7 +3,7 @@
 import torch
 import numpy as np
 
-from core.config import HF_TOKEN
+from core.config import get_secret
 _pipeline = None
 
 
@@ -11,11 +11,22 @@ def get_diarization_pipeline():
     """Load Pyannote pipeline once and reuse."""
     global _pipeline
     if _pipeline is None:
+        token = get_secret("HF_TOKEN")
+        if not token:
+            raise RuntimeError(
+                "HF_TOKEN not found. Set it in Streamlit Cloud secrets "
+                "(Advanced Settings -> Secrets) as:\n"
+                'HF_TOKEN = "hf_YourWriteTokenHere"'
+            )
+
+        import huggingface_hub
+        huggingface_hub.login(token=token, add_to_git_credential=False)
+
         print("Loading Pyannote diarization pipeline...")
         from pyannote.audio import Pipeline
         _pipeline = Pipeline.from_pretrained(
             "pyannote/speaker-diarization-3.1",
-            token=HF_TOKEN
+            use_auth_token=token
         )
         print("Diarization pipeline loaded")
     return _pipeline
